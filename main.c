@@ -15,8 +15,8 @@
 #define IMHTTP_IMPLEMENTATION
 #include "imhttp.h"
 
-#define HOST "localhost"
-#define PORT "6969"
+#define HOST "tsoding.org"
+#define PORT "80"
 
 
 ssize_t imhttp_write(ImHTTP_Socket socket, const void *buf, size_t count)
@@ -60,9 +60,10 @@ int main()
         fprintf(stderr, "Could not get address of `"HOST"` : %s\n", strerror(errno));
         exit(1);
     }
-
+    
+    // TODO: Make this static because there is no dynamic mem alloc
     ImHTTP imhttp = {
-        .socket = (void *) (int64_t) sd,
+        .socket = ( void *) (int64_t) sd,
         .write = imhttp_write,
         .read = imhttp_read,
     };
@@ -72,11 +73,24 @@ int main()
         imhttp_req_header(&imhttp, "Host", HOST);
         imhttp_req_header(&imhttp, "Foo", "Bar");
         imhttp_req_header(&imhttp, "Hello", "Worl");
-        imhttp_req_header_end(&imhttp);
+        imhttp_req_headers_end(&imhttp);
         imhttp_req_body_chunk(&imhttp, "Hello Body World!\n");
 
     }
     imhttp_req_end(&imhttp);
+
+
+    imhttp_res_begin(&imhttp);
+    {
+
+        fputs("Meta: \n", stdout);
+        fwrite(imhttp.res_meta, 1, imhttp.res_meta_size, stdout);
+        fputc('\n', stdout);
+        fputs("Body Chunk\n", stdout);
+        fwrite(imhttp.res_body_chunk, 1, imhttp.res_body_chunk_size, stdout);
+    }
+    imhttp_res_end(&imhttp);
+
     close(sd);
     return 0;
 }
